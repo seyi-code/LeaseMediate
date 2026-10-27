@@ -1,47 +1,58 @@
 # LeaseMediate
 
-**Open-source Tenant-Landlord Mediation Portal** (production-oriented foundation)
+**Production-oriented open-source Tenant-Landlord Mediation Portal**
 
-LeaseMediate helps tenants and landlords resolve disputes faster with structured evidence submission, AI-assisted analysis, and non-binding resolution proposals. Human review is mandatory before any proposal is treated as final.
+https://github.com/seyi-code/LeaseMediate
 
-> **Legal notice**: Non-binding proposals only. Not legal advice. Requires jurisdiction-specific attorney review before any pilot or production use.
+Structured evidence → AI-assisted analysis → non-binding proposals with **mandatory human mediator review** before acceptance.
 
-## Repositories
+> Non-binding only. Not legal advice. Attorney review of prompts and jurisdiction packs is required before any pilot.
 
-- This repo: https://github.com/seyi-code/LeaseMediate
+## Production foundation (current)
 
-## What is production-ready in this foundation
+| Area | Status |
+|------|--------|
+| Multi-tenant Prisma schema | Done |
+| JWT auth + register/login + roles | Done |
+| Case routes on Prisma (org-scoped) | Done |
+| Human mediator gate (accept blocked until review) | Done |
+| ClamAV scanner (fail-closed in production) | Done |
+| LangGraph agent mesh + Pydantic schemas | Done |
+| Schema unit tests | Done |
+| Jurisdiction pack format | Documented |
+| Rate limiting | Done |
+| Docker Compose (Postgres, Redis, MinIO) | Done |
 
-- Multi-tenant Postgres schema (Prisma) – Organization → Users → Cases → Documents → Audit
-- JWT auth + role guards (TENANT / LANDLORD / MEDIATOR / ADMIN)
-- Case repository that always scopes by organizationId
-- Malware scan interface (ClamAV / cloud) – **replace placeholder before public use**
-- LangGraph agent mesh with Instructor + Pydantic schemas
-- Unit tests for schemas
-- Docker Compose for local infra
-- Deploy notes (Fly / Render / VPS)
+## Still required before public pilot
 
-## What you still must do for a real pilot
-
-1. Wire real ClamAV or cloud scanner (no placeholder).
-2. Attorney review of prompts + jurisdiction rule packs.
-3. Enforce human mediator approval in UI + API before "accepted".
-4. Run Prisma migrations against real Postgres.
-5. Add OpenTelemetry + log shipping.
-6. Pen test + rate-limit tuning.
-7. Backups + retention policy.
+1. Run real ClamAV (or cloud scanner) – do not ship with `CLAMAV_DISABLED=true` in production.
+2. Attorney-reviewed jurisdiction packs and prompts.
+3. Prisma migrations applied to managed Postgres.
+4. OpenTelemetry exporters + log/metrics backend.
+5. PDF upload → PyMuPDF → agent pipeline end-to-end.
+6. Backups, retention policy, pen test.
 
 ## Quick start
 
 ```bash
 docker compose -f infra/docker-compose.yml up -d
 cd services/api && npm i && npx prisma generate && npx prisma migrate dev
-cd ../agent && pip install -r requirements.txt
-# set OPENAI_API_KEY, JWT_SECRET, DATABASE_URL in .env
+# set JWT_SECRET, DATABASE_URL, OPENAI_API_KEY, REDIS_URL
+npm run dev
+
+cd ../agent && pip install -r requirements.txt && pytest
+python -m worker   # or uvicorn main:app
+
+cd ../../apps/web && npm i && npm run dev
 ```
 
-See `deploy/README.md` and `docs/` for architecture and legal notes.
+Register via `POST /api/v1/auth/register`, store the JWT, then create cases.
+
+## Human mediator gate
+
+- `POST /api/v1/cases/:id/review` – MEDIATOR or ADMIN only
+- `POST /api/v1/cases/:id/accept` – returns 403 `HUMAN_REVIEW_REQUIRED` until reviewed
 
 ## License
 
-MIT recommended; add LICENSE before public release.
+MIT recommended. Add LICENSE before public release.
