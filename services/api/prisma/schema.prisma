@@ -1,0 +1,144 @@
+// LeaseMediate – production Prisma schema
+// Multi-tenant: every case belongs to an Organization.
+// Roles: TENANT, LANDLORD, MEDIATOR, ADMIN (org-scoped).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  TENANT
+  LANDLORD
+  MEDIATOR
+  ADMIN
+}
+
+enum CaseStatus {
+  DRAFT
+  EVIDENCE_COLLECTION
+  UNDER_ANALYSIS
+  PROPOSAL_READY
+  NEGOTIATING
+  ACCEPTED
+  ESCALATED
+  CLOSED
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  jurisdictionDefault String @default("US-CA")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  cases       Case[]
+  invitations Invitation[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String?
+  passwordHash   String?
+  role           Role     @default(TENANT)
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  casesCreated   Case[]   @relation("CaseCreator")
+  auditEvents    AuditEvent[]
+  invitations    Invitation[]
+
+  @@index([organizationId])
+}
+
+model Case {
+  id              String     @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  title           String
+  jurisdiction    String
+  status          CaseStatus @default(DRAFT)
+  createdById     String
+  createdBy       User       @relation("CaseCreator", fields: [createdById], references: [id])
+  tenantEmail     String?
+  landlordEmail   String?
+  tenantClaims    String?
+  landlordClaims  String?
+  evidenceSummaries String[] @default([])
+  leaseDocumentId String?
+  proposalJson    Json?
+  extractedTerms  Json?
+  classifiedIssues Json?
+  humanReviewed   Boolean    @default(false)
+  reviewedById    String?
+  reviewedAt      DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  documents       Document[]
+  auditEvents     AuditEvent[]
+
+  @@index([organizationId, status])
+  @@index([createdById])
+}
+
+model Document {
+  id             String   @id @default(cuid())
+  caseId         String
+  case           Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  filename       String
+  contentType    String
+  sizeBytes      Int
+  storageKey     String
+  sha256         String
+  scannedAt      DateTime?
+  scanStatus     String   @default("pending")
+  scanEngine     String?
+  uploadedById   String?
+  createdAt      DateTime @default(now())
+
+  @@index([caseId])
+  @@index([sha256])
+}
+
+model AuditEvent {
+  id             String   @id @default(cuid())
+  caseId         String?
+  case           Case?    @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organizationId String?
+  action         String
+  metadata       Json?
+  ip             String?
+  createdAt      DateTime @default(now())
+
+  @@index([caseId])
+  @@index([organizationId, createdAt])
+}
+
+model Invitation {
+  id             String   @id @default(cuid())
+  email          String
+  role           Role
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  invitedById    String?
+  invitedBy      User?    @relation(fields: [invitedById], references: [id])
+  token          String   @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId])
+  @@index([token])
+}
