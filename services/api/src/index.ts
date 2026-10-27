@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import { caseRoutes } from "./routes/cases.js";
 import { healthRoutes } from "./routes/health.js";
 import { authRoutes } from "./routes/auth.js";
+import { documentRoutes } from "./routes/documents.js";
 
 dotenv.config();
 
@@ -43,6 +44,7 @@ app.decorate("authenticate", async (request: any, reply: any) => {
 await app.register(healthRoutes);
 await app.register(authRoutes, { prefix: "/api/v1" });
 await app.register(caseRoutes, { prefix: "/api/v1" });
+await app.register(documentRoutes, { prefix: "/api/v1" });
 
 const port = Number(process.env.PORT ?? 4000);
 const host = process.env.HOST ?? "0.0.0.0";
