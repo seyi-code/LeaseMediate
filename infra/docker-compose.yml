@@ -37,7 +37,30 @@ services:
     volumes:
       - minio_data:/data
 
+  clamav:
+    image: clamav/clamav:1.4
+    ports:
+      - "3310:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/clamdcheck.sh"]
+      interval: 60s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.57
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "16686:16686"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+  clamav_data:

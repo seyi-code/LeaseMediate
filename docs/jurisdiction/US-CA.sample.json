@@ -1,0 +1,13 @@
+{
+  "jurisdiction": "US-CA",
+  "version": "2026.1-SAMPLE",
+  "status": "DRAFT_REQUIRES_ATTORNEY_REVIEW",
+  "disclaimer": "This pack is a technical sample only. It is NOT legal advice and MUST be reviewed and approved by a licensed attorney in California before any production or pilot use.",
+  "habitability_standards": ["heat", "hot_water", "waterproofing", "electrical", "sanitation"],
+  "repair_timeline_days": { "emergency": 1, "urgent": 3, "normal": 30 },
+  "notes": [
+    "Confirm current California Civil Code with counsel before relying on repair timelines or rent remedies."
+  ],
+  "reviewed_by": null,
+  "reviewed_at": null
+}
